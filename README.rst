@@ -20,8 +20,8 @@ Kashmira Shinde, Jongseok Lee, Matthias Humt, Aydin Sezgin, Rudolph Triebel, ICM
 Overview
 ============
 
-This repository contains a PyTorch implementation of several Laplace approximation methods (`LA <https://pdfs.semanticscholar.org/b0f2/433c088591d265891231f1c22424047f1bc1.pdf>`_) [1_].
-It is similar to this `TensorFlow implementation <https://github.com/tensorflow/kfac>`_ which approximates the curvature of nerual networks, except that our main purpose is approximate Bayesian inference instead of second-order optimization. 
+This repository contains PyTorch implementations of several Laplace approximation methods (`LA <https://pdfs.semanticscholar.org/b0f2/433c088591d265891231f1c22424047f1bc1.pdf>`_) [1_].
+It is similar to this `TensorFlow implementation <https://github.com/tensorflow/kfac>`_ which approximates the curvature of neural networks, except that our main purpose is approximate Bayesian inference instead of second-order optimization. 
 
 The following approximations to the Fisher information matrix (IM) are supported with different fidelty-complexity trade-offs:
 
