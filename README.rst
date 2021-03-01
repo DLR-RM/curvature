@@ -90,9 +90,9 @@ Finally, to run the ImageNet scripts or use the ``datasets`` module, install ``s
 
 Get Started
 ===========
-A 60-seconds blitz to Laplace approximation (which you can also find `here <https://rmc-github.robotic.dlr.de/humt-ma/curvature/blob/master/curvature/test.py>`_).
+A 60-seconds blitz to Laplace approximation (which you can also find `here <https://github.com/DLR-RM/curvature/blob/main/scripts/test.py>`_).
 For a more detailed example please have a look at the
-`Jupyter notebook <https://rmc-github.robotic.dlr.de/humt-ma/curvature/blob/master/curvature/tutorial.ipynb>`_.
+`Jupyter notebook <https://github.com/DLR-RM/curvature/blob/main/tutorial.ipynb>`_.
 
 .. code-block:: python
 
@@ -105,7 +105,7 @@ For a more detailed example please have a look at the
     from curvature.curvatures import KFAC
     from curvature.lenet5 import lenet5
 
-    
+
     # Change this to 'cuda' if you have a working GPU.
     device = 'cpu'
 
