@@ -100,9 +100,9 @@ For a more detailed example please have a look at the
     import tqdm
 
     # From the repository
-    from fisher import KFAC
+    from curvatures import KFAC
     from lenet5 import lenet5
-    from sampling import invert_factors
+
 
     # Change this to 'cuda' if you have a working GPU.
     device = 'cpu'
@@ -126,9 +126,9 @@ For a more detailed example please have a look at the
     for images, labels in tqdm.tqdm(train_data):
         logits = model(images.to(device))
 
-        # We compute the 'true' Fisher information matrix (IM),
+        # We compute the 'true' Fisher information matrix (FIM),
         # by taking the expectation over the model distribution.
-        # To obtain the empirical IM, just use the labels from
+        # To obtain the empirical FIM, just use the labels from
         # the data distribution directly.
         dist = torch.distributions.Categorical(logits=logits)
         sampled_labels = dist.sample()
@@ -140,11 +140,11 @@ For a more detailed example please have a look at the
         # We call 'estimator.update' here instead of 'optimizer.step'.
         kfac.update(batch_size=images.size(0))
 
-    # Access and invert the curvature information to perform Bayesian inference.
-    # 'Norm' (tau) and 'scale' (N) are the two hyperparameters of Laplace approximation.
-    # See the tutorial notebook for for an in-depth example and explanation.
-    factors = list(kfac.state.values())
-    inv_factors = invert_factors(factors, norm=0.5, scale=1, estimator='kfac')
+    # Invert the curvature information to perform Bayesian inference.
+    # 'Add' and 'multiply' are the two regularization hyperparameters of Laplace approximation.
+    # Please see the tutorial notebook for for in-depth examples and explanations.
+    kfac.invert(add=0.5, multiply=1)
+    kfac.sample_and_replace()
 
 .. .. literalinclude:: ../../curvature/test.py
 
