@@ -102,10 +102,10 @@ For a more detailed example please have a look at the
     import tqdm
 
     # From the repository
-    from src.curvatures import KFAC
-    from src.lenet5 import lenet5
+    from curvature.curvatures import KFAC
+    from curvature.lenet5 import lenet5
 
-
+    
     # Change this to 'cuda' if you have a working GPU.
     device = 'cpu'
 
