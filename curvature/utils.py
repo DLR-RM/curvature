@@ -3,7 +3,7 @@
 import argparse
 import multiprocessing
 import os
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Dict
 from datetime import datetime
 import random
 import logging
@@ -13,6 +13,7 @@ from numpy import ndarray as array
 import psutil
 import torch
 from torch import Tensor
+from torch.nn import Module
 from tqdm import tqdm
 from scipy.stats import entropy
 
@@ -41,21 +42,21 @@ def get_eigenvalues(factors: List[Tensor],
     return eigenvalues
 
 
-def get_eigenvectors(factors: List[Tensor]) -> List[List[Tensor]]:
+def get_eigenvectors(factors: Dict[Module, Tensor]) -> Dict[Module, Tensor]:
     """Computes the eigenvectors of KFAC factors.
 
     Args:
-        factors: A list of KFAC factors.
+        factors: A dict mapping layers to lists of first and second KFAC factors.
 
     Returns:
-        A list where each element is a list of first and second KFAC factors eigenvectors.
+        A dict mapping layers to lists containing the first and second KFAC factors eigenvectors.
     """
-    eigenvectors = list()
-    for (xxt, ggt) in factors:
+    eigenvectors = dict()
+    for layer, (xxt, ggt) in factors.items():
         sym_xxt, sym_ggt = xxt + xxt.t(), ggt + ggt.t()
         _, xxt_eigvecs = torch.symeig(sym_xxt, eigenvectors=True)
         _, ggt_eigvecs = torch.symeig(sym_ggt, eigenvectors=True)
-        eigenvectors.append([xxt_eigvecs, ggt_eigvecs])
+        eigenvectors[layer] = (xxt_eigvecs, ggt_eigvecs)
     return eigenvectors
 
 

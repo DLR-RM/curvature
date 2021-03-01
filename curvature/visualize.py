@@ -8,9 +8,9 @@ from matplotlib import pyplot as plt
 import tabulate
 
 import curvature.plot as plot
-from .lenet5 import lenet5
-from .resnet import resnet18
-from .utils import setup, get_eigenvalues, accuracy, get_eigenvectors, expected_calibration_error
+from lenet5 import lenet5
+from resnet import resnet18
+from utils import setup, get_eigenvalues, accuracy, get_eigenvectors, expected_calibration_error
 
 import matplotlib
 matplotlib.use("agg")

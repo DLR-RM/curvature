@@ -7,13 +7,12 @@ import torch
 import torchvision
 
 import curvature.datasets as datasets
-from .lenet5 import lenet5
-from .resnet import resnet18
-from .evaluate import eval_bnn
-from .sampling import invert_factors
-from .utils import (accuracy, setup, expected_calibration_error, predictive_entropy, negative_log_likelihood,
-                    get_eigenvectors)
-from .visualize import hyperparameters
+from lenet5 import lenet5
+from resnet import resnet18
+from evaluate import eval_bnn
+from curvatures import Diagonal, KFAC, EFB, INF
+from utils import accuracy, setup, expected_calibration_error, predictive_entropy, negative_log_likelihood
+from visualize import hyperparameters
 
 
 def grid(func, dimensions):
@@ -78,19 +77,28 @@ def main():
         raise ValueError
 
     print("Loading factors")
-    if args.estimator in ["diag", "kfac"]:
-        factors = torch.load(factors_path + '.pth')
-    elif args.estimator == 'efb':
-        kfac_factors = torch.load(factors_path.replace("efb", "kfac") + '.pth')
-        lambdas = torch.load(factors_path + '.pth')
-
-        factors = list()
-        eigvecs = get_eigenvectors(kfac_factors)
-
-        for eigvec, lambda_ in zip(eigvecs, lambdas):
-            factors.append((eigvec[0], eigvec[1], lambda_))
-    elif args.estimator == 'inf':
-        factors = torch.load(f"{factors_path}{args.rank}.pth")
+    factors_path = os.path.join(args.root_dir, "factors", f"{args.model}_{args.data}_{args.estimator}")
+    if args.estimator in ['diag', 'kfac']:
+        if args.estimator == 'diag':
+            estimator = Diagonal(model)
+        elif args.estimator == 'kfac':
+            estimator = KFAC(model)
+        estimator.state = torch.load(factors_path + '.pth')
+    elif args.estimator in ['efb', 'inf']:
+        if args.estimator == 'efb':
+            kfac_factors = torch.load(factors_path.replace("efb", "kfac") + '.pth')
+            estimator = EFB(model, kfac_factors)
+            estimator.state = torch.load(factors_path + '.pth')
+        if args.estimator == 'inf':
+            diags = torch.load(factors_path.replace("inf", "diag") + '.pth')
+            kfac_factors = torch.load(factors_path.replace("inf", "kfac") + '.pth')
+            lambdas = torch.load(factors_path.replace("inf", "efb") + '.pth')
+            try:
+                factors = torch.load(f"{factors_path}{args.rank}.pth")
+            except FileNotFoundError:
+                factors = np.load(factors_path + f"{args.rank}.npz", allow_pickle=True)['sif_list']  # Todo: Remove
+            estimator = INF(model, diags, kfac_factors, lambdas)
+            estimator.state = factors
     torch.backends.cudnn.benchmark = True
 
     norm_min = -10
@@ -129,13 +137,13 @@ def main():
         scales = [10 ** params["scale"]] * len(factors)
         print("Norm:", norms[0], "Scale:", scales[0])
         try:
-            inv_factors = invert_factors(factors, norms, args.pre_scale * scales, args.estimator)
+            estimator.invert(norms, args.pre_scale * scales)
         except (RuntimeError, np.linalg.LinAlgError):
             print(f"Error: Singular matrix")
             return 200
 
-        predictions, labels, _ = eval_bnn(model, val_loader, inv_factors, args.estimator, args.samples, stats=False,
-                                          device=args.device, verbose=args.verbose)
+        predictions, labels, _ = eval_bnn(model, val_loader, estimator, args.samples, stats=False, device=args.device,
+                                          verbose=args.verbose)
 
         err = 100 - accuracy(predictions, labels)
         ece = 100 * expected_calibration_error(predictions, labels)[0]

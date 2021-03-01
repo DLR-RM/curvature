@@ -1,4 +1,3 @@
-import copy
 import os
 
 import numpy as np
@@ -8,13 +7,13 @@ import torchvision
 import tqdm
 from matplotlib import pyplot as plt
 
-import curvature.datasets as datasets
-from .lenet5 import lenet5
-from .resnet import resnet18
-import curvature.plot as plot
-from .sampling import sample_and_replace_weights, invert_factors
-from .utils import (accuracy, setup, ram, vram, expected_calibration_error, predictive_entropy, negative_log_likelihood,
-                    calibration_curve, get_eigenvectors)
+import datasets as datasets
+from lenet5 import lenet5
+from resnet import resnet18
+import plot
+from curvatures import Diagonal, KFAC, EFB, INF
+from utils import (accuracy, setup, ram, vram, expected_calibration_error, predictive_entropy, negative_log_likelihood,
+                   calibration_curve)
 
 
 def eval_fgsm(model,
@@ -60,8 +59,7 @@ def eval_fgsm(model,
 
 def eval_fgsm_bnn(model,
                   data,
-                  inv_factors,
-                  estimator='kfac',
+                  estimator,
                   samples=30,
                   epsilon=0.1,
                   stats=True,
@@ -69,16 +67,14 @@ def eval_fgsm_bnn(model,
                   verbose=True):
 
     model.eval()
-    mean_state = copy.deepcopy(model.state_dict())
     mean_predictions = 0
 
     samples = tqdm.tqdm(range(samples), disable=not verbose)
-    for sample in samples:
+    for _ in samples:
         samples.set_postfix({'RAM': ram(), 'VRAM': vram()})
-        sample_and_replace_weights(model, inv_factors, estimator)
+        estimator.sample_and_replace()
         predictions, labels, _ = eval_fgsm(model, data, epsilon, stats=False, device=device, verbose=False)
         mean_predictions += predictions
-        model.load_state_dict(mean_state)
     mean_predictions /= len(samples)
 
     if stats:
@@ -95,7 +91,10 @@ def eval_fgsm_bnn(model,
     return mean_predictions, labels, stats_dict
 
 
-def eval_nn(model, dataset, device=torch.device('cuda'), verbose=False):
+def eval_nn(model,
+            dataset,
+            device=torch.device('cuda'),
+            verbose=False):
     model.eval()
 
     with torch.no_grad():
@@ -121,14 +120,13 @@ def eval_nn(model, dataset, device=torch.device('cuda'), verbose=False):
 
 def eval_bnn(model,
              dataset,
-             inv_factors,
-             estimator='kfac',
-             samples=30, stats=False,
+             estimator,
+             samples=30,
+             stats=False,
              device=torch.device('cuda'),
              verbose=True):
 
     model.eval()
-    mean_state = copy.deepcopy(model.state_dict())
     mean_predictions = 0
     stats_list = {"acc": [], "ece": [], "nll": [], "ent": []}
 
@@ -136,10 +134,9 @@ def eval_bnn(model,
         samples = tqdm.tqdm(range(samples), disable=not verbose)
         for sample in samples:
             samples.set_postfix({'RAM': ram(), 'VRAM': vram()})
-            sample_and_replace_weights(model, inv_factors, estimator)
+            estimator.sample_and_replace()
             predictions, labels = eval_nn(model, dataset, device)
             mean_predictions += predictions
-            model.load_state_dict(mean_state)
 
             if stats:
                 running_mean = mean_predictions / (sample + 1)
@@ -157,7 +154,6 @@ def eval_bnn(model,
 
 def eval_nn_and_bnn(model,
                     dataset,
-                    inv_factors,
                     estimator,
                     samples,
                     stats,
@@ -169,7 +165,7 @@ def eval_nn_and_bnn(model,
         dataset.dataset.set_use_cache(True)
     except AttributeError:
         pass
-    bnn_predictions, _, bnn_stats = eval_bnn(model, dataset, inv_factors, estimator, samples, stats, device, verbose)
+    bnn_predictions, _, bnn_stats = eval_bnn(model, dataset, estimator, samples, stats, device, verbose)
 
     return predictions, bnn_predictions, labels, bnn_stats
 
@@ -180,7 +176,7 @@ def test(args, model, fig_path=""):
         test_loader = datasets.cifar10(args.torch_data, splits='test')
     elif args.data == 'gtsrb':
         test_loader = datasets.gtsrb(args.data_dir, batch_size=args.batch_size, splits='test')
-    if args.data == 'mnist':
+    elif args.data == 'mnist':
         test_loader = datasets.mnist(args.torch_data, splits='test')
     elif args.data == 'tiny':
         test_loader = datasets.imagenet(args.data_dir, img_size=64, batch_size=args.batch_size, splits='test',
@@ -200,7 +196,7 @@ def test(args, model, fig_path=""):
     plot.reliability_diagram(predictions, labels, path=fig_path + "_reliability.pdf")
 
 
-def out_of_domain(args, model, inv_factors, results_path="", fig_path=""):
+def out_of_domain(args, model, estimator, results_path="", fig_path=""):
     """Evaluates the model on in- and out-of-domain data.
 
     Each dataset has its own out-of-domain dataset which is loaded automatically alongside the in-domain dataset
@@ -243,14 +239,16 @@ def out_of_domain(args, model, inv_factors, results_path="", fig_path=""):
         data_dir = os.path.join(args.root_dir, "datasets", "imagenet")
         in_data = datasets.imagenet(data_dir, img_size, args.batch_size, workers=args.workers, splits='test')
         out_data = datasets.art(data_dir, img_size, args.batch_size, workers=args.workers)
+    else:
+        raise ValueError
 
     # Compute NN and BNN predictions on validation set of training data
-    predictions, bnn_predictions, labels, stats = eval_nn_and_bnn(model, in_data, inv_factors, args.estimator,
-                                                                  args.samples, args.stats, args.device, verbose=True)
+    predictions, bnn_predictions, labels, stats = eval_nn_and_bnn(model, in_data, estimator, args.samples, args.stats,
+                                                                  args.device, verbose=True)
 
     # Compute NN and BNN predictions on out-of-distribution data
-    ood_predictions, bnn_ood_predictions, _, _ = eval_nn_and_bnn(model, out_data, inv_factors, args.estimator,
-                                                                 args.samples, False, args.device, verbose=True)
+    ood_predictions, bnn_ood_predictions, _, _ = eval_nn_and_bnn(model, out_data, estimator, args.samples, False,
+                                                                 args.device, verbose=True)
 
     if not args.no_results:
         print("Saving results")
@@ -282,7 +280,7 @@ def out_of_domain(args, model, inv_factors, results_path="", fig_path=""):
         plot.entropy_hist(bnn_predictions, bnn_ood_predictions, path=fig_path + "_bnn_entropy.pdf")
 
 
-def adversarial_attack(args, model, inv_factors, results_path, fig_path):
+def adversarial_attack(args, model, estimator, results_path, fig_path):
     print("Loading data")
     if args.data == 'cifar10':
         test_loader = datasets.cifar10(args.torch_data, splits='test')
@@ -298,6 +296,8 @@ def adversarial_attack(args, model, inv_factors, results_path, fig_path):
         if args.model in ['googlenet', 'inception_v3']:
             img_size = 299
         test_loader = datasets.imagenet(args.data_dir, img_size, args.batch_size, workers=args.workers, splits='test')
+    else:
+        raise ValueError
 
     if args.epsilon > 0:
         print(eval_fgsm(model, test_loader, args.epsilon, args.device)[-1])
@@ -307,8 +307,7 @@ def adversarial_attack(args, model, inv_factors, results_path, fig_path):
         steps = np.concatenate([np.linspace(0, 0.2, 11), np.linspace(0.3, 1, 8)])
         for step in steps:
             stats = eval_fgsm(model, test_loader, step, args.device, verbose=False)[-1]
-            bnn_stats = eval_fgsm_bnn(model, test_loader, inv_factors, args.estimator, args.samples, step,
-                                      device=args.device)[-1]
+            bnn_stats = eval_fgsm_bnn(model, test_loader, estimator, args.samples, step, device=args.device)[-1]
             for (k1, v1), (k2, v2) in zip(stats.items(), bnn_stats.items()):
                 stats_dict[k1].append(v1)
                 bnn_stats_dict[k2].append(v2)
@@ -349,21 +348,26 @@ def main():
         print("Loading factors")
         factors_path = os.path.join(args.root_dir, "factors", f"{args.model}_{args.data}_{args.estimator}")
         if args.estimator in ['diag', 'kfac']:
-            factors = torch.load(factors_path + '.pth')
-        elif args.estimator == 'efb':
-            kfac_factors = torch.load(factors_path.replace("efb", "kfac") + '.pth')
-            lambdas = torch.load(factors_path + '.pth')
-
-            factors = list()
-            eigvecs = get_eigenvectors(kfac_factors)
-
-            for eigvec, lambda_ in zip(eigvecs, lambdas):
-                factors.append([eigvec[0], eigvec[1], lambda_])
-        elif args.estimator == 'inf':
-            try:
-                factors = torch.load(f"{factors_path}{args.rank}.pth")
-            except FileNotFoundError:
-                factors = np.load(factors_path + f"{args.rank}.npz", allow_pickle=True)['sif_list']  # Todo: Remove
+            if args.estimator == 'diag':
+                estimator = Diagonal(model)
+            elif args.estimator == 'kfac':
+                estimator = KFAC(model)
+            estimator.state = torch.load(factors_path + '.pth')
+        elif args.estimator in ['efb', 'inf']:
+            if args.estimator == 'efb':
+                kfac_factors = torch.load(factors_path.replace("efb", "kfac") + '.pth')
+                estimator = EFB(model, kfac_factors)
+                estimator.state = torch.load(factors_path + '.pth')
+            if args.estimator == 'inf':
+                diags = torch.load(factors_path.replace("inf", "diag") + '.pth')
+                kfac_factors = torch.load(factors_path.replace("inf", "kfac") + '.pth')
+                lambdas = torch.load(factors_path.replace("inf", "efb") + '.pth')
+                try:
+                    factors = torch.load(f"{factors_path}{args.rank}.pth")
+                except FileNotFoundError:
+                    factors = np.load(factors_path + f"{args.rank}.npz", allow_pickle=True)['sif_list']  # Todo: Remove
+                estimator = INF(model, diags, kfac_factors, lambdas)
+                estimator.state = factors
 
         print("Inverting factors")
         if args.norm == -1 or args.scale == -1:
@@ -371,12 +375,12 @@ def main():
         else:
             norm, scale = args.norm, args.scale
         scale = args.pre_scale * scale
-        inv_factors = invert_factors(factors, norm, scale, args.estimator)
+        estimator.invert(norm, scale)
 
     if args.fgsm:
-        adversarial_attack(args, model, inv_factors, results_path, fig_path)
+        adversarial_attack(args, model, estimator, results_path, fig_path)
     elif args.ood:
-        out_of_domain(args, model, inv_factors, results_path, fig_path)
+        out_of_domain(args, model, estimator, results_path, fig_path)
     else:
         fig_path = os.path.join(args.results_dir, args.model, "figures", filename)
         test(args, model, fig_path)

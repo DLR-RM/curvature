@@ -8,11 +8,12 @@ import tqdm
 import curvature.datasets as datasets
 import curvature.lenet5 as lenet5
 import curvature.resnet as resnet
-import curvature.fisher as fisher
-from .utils import setup, ram, vram
+import curvature.curvatures as curv
+from utils import setup, ram, vram
 
 
-def compute_inf(args):
+def compute_inf(args: Any,
+                model: Union[torch.nn.Module, torch.nn.Sequential]):
     print("Loading factors")
     factors_path = os.path.join(args.root_dir, "factors", f"{args.prefix}{args.model}_{args.data}_kfac{args.suffix}")
     factors = torch.load(factors_path + '.pth')
@@ -26,8 +27,8 @@ def compute_inf(args):
     diags = torch.load(factors_path + '.pth')
 
     print("Computing inf")
-    inf = fisher.INF(factors, lambdas, diags)
-    inf.accumulate(args.rank)
+    inf = curv.INF(model, diags, factors, lambdas)
+    inf.update(args.rank)
 
     return inf
 
@@ -39,7 +40,7 @@ def compute_factors(args: Any,
 
     model.train()
     criterion = torch.nn.CrossEntropyLoss().to(args.device)
-    est_base = getattr(fisher, args.estimator.upper())
+    est_base = getattr(curv, args.estimator.upper())
     if args.estimator == 'efb':
         est = est_base(model, factors)
     else:
@@ -108,11 +109,13 @@ def main():
             if args.model in ['googlenet', 'inception_v3']:
                 img_size = 299
             data = datasets.imagenet(data_dir, img_size, args.batch_size, workers=args.workers, splits='train')
+        else:
+            raise ValueError
     torch.backends.cudnn.benchmark = True
 
     print("Computing factors")
     if args.estimator == 'inf':
-        est = compute_inf(args)
+        est = compute_inf(model, args)
     elif args.estimator == 'efb':
         factors = torch.load(factors_path.replace("efb", "kfac") + '.pth')
         est = compute_factors(args, model, data, factors)
@@ -123,10 +126,10 @@ def main():
     if args.estimator == "inf":
         torch.save(est.state, f"{factors_path}{args.rank}.pth")
     elif args.estimator == "efb":
-        torch.save(list(est.state.values()), factors_path + '.pth')
-        torch.save(list(est.diags.values()), factors_path.replace("efb", "diag") + '.pth')
+        torch.save(est.state, factors_path + '.pth')
+        torch.save(est.diags, factors_path.replace("efb", "diag") + '.pth')
     else:
-        torch.save(list(est.state.values()), factors_path + '.pth')
+        torch.save(est.state, factors_path + '.pth')
 
 
 if __name__ == "__main__":
