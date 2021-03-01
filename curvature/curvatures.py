@@ -253,6 +253,13 @@ class BlockDiagonal(Curvature):
             reg = torch.diag(value.new(value.shape[0]).fill_(n))
             self.inv_state[layer] = (s * value + reg).inverse().cholesky()
 
+    def sample(self,
+               layer: Module) -> Tensor:
+        assert self.inv_state, "Inverse state dict is empty. Did you call 'invert' prior to this?"
+        x = self.inv_state[layer].new(self.inv_state[layer].shape[0]).normal_() @ self.inv_state[layer]
+        return torch.cat([x[:layer.weight.numel()].contiguous().view(*layer.weight.shape),
+                          torch.unsqueeze(x[layer.weight.numel():], dim=1)], dim=1)
+
 
 class KFAC(Curvature):
     r"""The Kronecker-factored Fisher information matrix approximation.
@@ -351,11 +358,11 @@ class KFAC(Curvature):
         if self.inv_state:
             Warning("State has already been inverted. Is this expected?")
         for index, (layer, value) in enumerate(self.state.items()):
-            if not isinstance(add, float) and not isinstance(multiply, float):
+            if not isinstance(add, (float, int)) and not isinstance(multiply, (float, int)):
                 assert len(add) == len(multiply) == len(self.state)
                 n, s = add[index], multiply[index]
             else:
-                n, s = add, multiply
+                n, s = float(add), float(multiply)
             first, second = value
 
             diag_frst = torch.diag(first.new(first.shape[0]).fill_(n ** 0.5))
