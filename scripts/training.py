@@ -3,10 +3,10 @@ import os
 import torch
 import tqdm
 
-from .resnet import resnet18
-from .datasets import gtsrb
-from .utils import setup, ram, vram, accuracy
-from .evaluate import eval_nn
+from src.resnet import resnet18
+from src.datasets import gtsrb
+from src.utils import setup, ram, vram, accuracy
+from scripts.evaluate import eval_nn
 
 
 def main():

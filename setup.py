@@ -12,7 +12,7 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'curvature'
+NAME = 'src'
 DESCRIPTION = 'Laplace approximation for Bayesian Deep Learning in PyTorch'
 URL = 'https://github.com/DLR-RM/curvature'
 EMAIL = 'none'

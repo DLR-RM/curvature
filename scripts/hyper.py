@@ -6,13 +6,13 @@ import skopt
 import torch
 import torchvision
 
-import curvature.datasets as datasets
-from lenet5 import lenet5
-from resnet import resnet18
-from evaluate import eval_bnn
-from curvatures import Diagonal, KFAC, EFB, INF
-from utils import accuracy, setup, expected_calibration_error, predictive_entropy, negative_log_likelihood
-from visualize import hyperparameters
+from src import datasets
+from src.lenet5 import lenet5
+from src.resnet import resnet18
+from src.curvatures import Diagonal, KFAC, EFB, INF
+from src.utils import accuracy, setup, expected_calibration_error, predictive_entropy, negative_log_likelihood
+from scripts.evaluate import eval_bnn
+from scripts.visualize import hyperparameters
 
 
 def grid(func, dimensions):

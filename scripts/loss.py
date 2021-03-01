@@ -10,12 +10,10 @@ from torch.backends import cudnn
 import torchvision
 from tqdm import tqdm
 
-from utils import setup
-from plot import plot_surfaces, plot_loss1d
-import curvature.lenet5 as lenet5
-import curvature.resnet as resnet
-from imagenet import imagenet
-import datasets
+from src import datasets, lenet5, resnet
+from src.utils import setup
+from scripts.plot import plot_surfaces, plot_loss1d
+from src.imagenet import imagenet
 
 
 def tensorlist_to_tensor(weights_or_state):

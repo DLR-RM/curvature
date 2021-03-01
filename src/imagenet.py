@@ -5,16 +5,11 @@ import copy
 import os
 from typing import Union, Tuple
 
-from tqdm import tqdm
 import numpy as np
-import torch
 from torch.utils import data
 from torchvision.datasets.folder import make_dataset, default_loader, IMG_EXTENSIONS
 from torchvision import transforms
-from torchvision.models import resnet50
 import cloudpickle
-
-from utils import seed_all_rng, setup
 
 
 class PicklableWrapper(object):
@@ -157,10 +152,6 @@ class DatasetMapper:
         return sample, target
 
 
-def worker_init_reset_seed(worker_id):
-    seed_all_rng(np.random.randint(2 ** 31) + worker_id)
-
-
 def find_classes(dir):
     """
     Finds the class folders in a dataset.
@@ -214,8 +205,7 @@ def imagenet(root: str,
         dataset = make_dataset(train_dir, class_to_idx, IMG_EXTENSIONS)
         dataset = DatasetFromList(dataset)
         dataset = MapDataset(dataset, train_mapper)
-        loader_list.append(data.DataLoader(dataset, batch_size, shuffle=shuffle, num_workers=workers, pin_memory=True,
-                                           worker_init_fn=worker_init_reset_seed))
+        loader_list.append(data.DataLoader(dataset, batch_size, shuffle=shuffle, num_workers=workers, pin_memory=True))
     if "val" or "test" in splits:
         classes, class_to_idx = find_classes(val_test_dir)
         val_test_set = make_dataset(val_test_dir, class_to_idx, IMG_EXTENSIONS)
@@ -237,20 +227,4 @@ def imagenet(root: str,
     if len(loader_list) == 1:
         return loader_list[0]
     return loader_list
-
-
-if __name__ == "__main__":
-    args = setup(required=False)
-
-    val_loader = imagenet(os.path.join(args.root_dir, "datasets", "imagenet"), splits="val")
-    model = resnet50(pretrained=True).to(args.device).eval()
-
-    correct = 0
-    with torch.no_grad():
-        for images, labels in tqdm(val_loader):
-            logits = model(images.to(args.device, non_blocking=True))
-            _, predicted = torch.max(logits.detach().cpu(), 1)
-            correct += predicted.eq(labels).sum().item()
-
-    print("Accuracy:", 100 * correct / 25000)
 

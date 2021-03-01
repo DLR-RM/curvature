@@ -11,16 +11,16 @@ from torch.nn import Module, Sequential
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from utils import get_eigenvectors, kron
+from src.utils import get_eigenvectors, kron
 
 
 class Curvature(ABC):
-    """Base class for all curvature approximations.
+    """Base class for all src approximations.
 
-    All curvature approximations are computed layer-wise (i.e. layer-wise independence is assumed s.t. no
+    All src approximations are computed layer-wise (i.e. layer-wise independence is assumed s.t. no
     covariances between layers are computed, aka block-wise approximation) and stored in `state`.
 
-    The curvature of the loss function is the matrix of 2nd-order derivatives of the loss w.r.t. the networks weights
+    The src of the loss function is the matrix of 2nd-order derivatives of the loss w.r.t. the networks weights
     (i.e. the expected Hessian). It can be approximated by the expected Fisher information matrix and, under exponential
     family loss functions (like mean-squared error and cross-entropy loss) and piecewise linear activation functions
     (i.e. ReLU), becomes identical to the Fisher.
@@ -42,7 +42,7 @@ class Curvature(ABC):
 
         Args:
             model: Any (pre-trained) PyTorch model including all `torchvision` models.
-            layer_types: Types of layers for which to compute curvature information. Supported are `Linear`, `Conv2d`
+            layer_types: Types of layers for which to compute src information. Supported are `Linear`, `Conv2d`
                          and `MultiheadAttention`. If `None`, all supported types are considered. Default: None.
         """
         self.model = model
@@ -71,7 +71,7 @@ class Curvature(ABC):
         """Modifies current model parameters by adding/subtracting quantity given in `sample`.
 
         Args:
-            sample: Sampled offset from the mean dictated by the inverse curvature (variance).
+            sample: Sampled offset from the mean dictated by the inverse src (variance).
             weight: The weights of one model layer.
             bias: The bias of one model layer. Optional.
         """
@@ -93,7 +93,7 @@ class Curvature(ABC):
         """Abstract method to be implemented by each derived class individually. Inverts state.
 
         Args:
-            add: This quantity times the identity is added to each curvature factor.
+            add: This quantity times the identity is added to each src factor.
             multiply: Each factor is multiplied by this quantity.
 
         Returns:
@@ -140,7 +140,7 @@ class Diagonal(Curvature):
 
     def update(self,
                batch_size: int):
-        """Computes the diagonal curvature for selected layer types, skipping all others.
+        """Computes the diagonal src for selected layer types, skipping all others.
 
         Args:
             batch_size: The size of the current batch.
@@ -203,7 +203,7 @@ class BlockDiagonal(Curvature):
     """
     def update(self,
                batch_size: int):
-        """Computes the block-diagonal (per-layer) curvature selected layer types, skipping all others.
+        """Computes the block-diagonal (per-layer) src selected layer types, skipping all others.
 
         Args:
             batch_size: The size of the current batch.

@@ -6,8 +6,8 @@ import torchvision
 import tqdm
 
 # From the repository
-from curvatures import KFAC
-from lenet5 import lenet5
+from src.curvatures import KFAC
+from src.lenet5 import lenet5
 
 
 # Change this to 'cuda' if you have a working GPU.
@@ -24,7 +24,7 @@ mnist = torchvision.datasets.MNIST(root=torch_data,
                                    download=True)
 train_data = torch.utils.data.DataLoader(mnist, batch_size=100, shuffle=True)
 
-# Decide which loss criterion and curvature approximation to use.
+# Decide which loss criterion and src approximation to use.
 criterion = torch.nn.CrossEntropyLoss().to(device)
 kfac = KFAC(model)
 
@@ -46,7 +46,7 @@ for images, labels in tqdm.tqdm(train_data):
     # We call 'estimator.update' here instead of 'optimizer.step'.
     kfac.update(batch_size=images.size(0))
 
-# Invert the curvature information to perform Bayesian inference.
+# Invert the src information to perform Bayesian inference.
 # 'Add' and 'multiply' are the two regularization hyperparameters of Laplace approximation.
 # Please see the tutorial notebook for for in-depth examples and explanations.
 kfac.invert(add=0.5, multiply=1)
