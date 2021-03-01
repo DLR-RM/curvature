@@ -3,7 +3,7 @@ Laplace Approximation for Bayesian Deep Learning
 
 Curvature Library
 ============
-Curvature Library is an official code for the following papers.
+Curvature Library is the official code base for the following papers:
 
 **Estimating Model Uncertainty of Neural Networks in Sparse Information Form**
 Jongseok Lee, Matthias Humt, Jianxiang Feng, Rudolph Triebel, ICML 2020.
@@ -21,16 +21,18 @@ Overview
 ============
 
 This repository contains PyTorch implementations of several Laplace approximation methods (`LA <https://pdfs.semanticscholar.org/b0f2/433c088591d265891231f1c22424047f1bc1.pdf>`_) [1_].
-It is similar to this `TensorFlow implementation <https://github.com/tensorflow/kfac>`_ which approximates the curvature of neural networks, except that our main purpose is approximate Bayesian inference instead of second-order optimization. 
+It is similar to this `TensorFlow implementation <https://github.com/tensorflow/kfac>`_ which approximates the curvature of neural networks, except that our main purpose is approximate Bayesian inference instead of second-order optimization.
 
 The following approximations to the Fisher information matrix (IM) are supported with different fidelty-complexity trade-offs:
 
-1. Diagonal (`DIAG <https://nyuscholars.nyu.edu/en/publications/improving-the-convergence-of-back-propagation-learning-with-secon>`_) [7_]
+1. Diagonal (`Diagonal <https://nyuscholars.nyu.edu/en/publications/improving-the-convergence-of-back-propagation-learning-with-secon>`_) [7_]
 2. Kronecker Factored Approximate Curvature (`KFAC <https://openreview.net/pdf?id=Skdvd2xAZ>`_) [2_, 3_, 6_]
 3. Eigenvalue corrected KFAC (`EFB <https://arxiv.org/pdf/1806.03884.pdf>`_) [4_]
 4. Sparse Information Form (`INF <https://proceedings.icml.cc/static/paper_files/icml/2020/2525-Paper.pdf>`_)
 
 The aim is to make LA easy to use while LA in itself is a practical approach, because trained networks can be used without any modification. Our implementation supports this plug-in-and-play principle, i.e. you can make already pretrained network Bayesian, and obtain calibrated uncertainty in deep neural network's predictions! Our library also features a Bayesian Optimization method for easier tuning of hyperparameters.
+
+An in-depth discussion of the theoretical background is provided in an accompanying `blog post <https://hummat.github.io/repository/2020/07/28/laplace-approximation-for-bayesian-deep-learning.html>`_.
 
 Installation
 ============
@@ -40,13 +42,13 @@ To install the module, clone or download the repository and run:
 .. code-block:: console
 
     $ pip install .
-    
+
 To install the optional dependencies for plotting (``plot``), evaluation (``eval``), hyperparameter optimization (``hyper``) or data loading (``data``) run:
 
 .. code-block:: console
 
     $ pip install .[extra]
-    
+
 where ``extra`` is the name of the optional depency (in brackets). To install multiple optional dependencies at once run e.g.:
 
 .. code-block:: console
@@ -270,8 +272,7 @@ A short description of all the modules and scripts in the ``curvature`` director
 
 **Main source**
 
-* ``fisher.py`` Implements diagonal, KFAC, EFB and INF IM approximations.
-* ``sampling.py`` Damping, inverting and matrix normal sampling.
+* ``curvatures.py`` Implements diagonal, KFAC, EFB and INF FiM approximations as well as inversion and sampling.
 
 **ImageNet experiments**
 
