@@ -102,8 +102,8 @@ For a more detailed example please have a look at the
     import tqdm
 
     # From the repository
-    from curvatures import KFAC
-    from lenet5 import lenet5
+    from src.curvatures import KFAC
+    from src.lenet5 import lenet5
 
 
     # Change this to 'cuda' if you have a working GPU.
@@ -120,7 +120,7 @@ For a more detailed example please have a look at the
                                        download=True)
     train_data = torch.utils.data.DataLoader(mnist, batch_size=100, shuffle=True)
 
-    # Decide which loss criterion and curvature approximation to use.
+    # Decide which loss criterion and src approximation to use.
     criterion = torch.nn.CrossEntropyLoss().to(device)
     kfac = KFAC(model)
 
@@ -142,7 +142,7 @@ For a more detailed example please have a look at the
         # We call 'estimator.update' here instead of 'optimizer.step'.
         kfac.update(batch_size=images.size(0))
 
-    # Invert the curvature information to perform Bayesian inference.
+    # Invert the src information to perform Bayesian inference.
     # 'Add' and 'multiply' are the two regularization hyperparameters of Laplace approximation.
     # Please see the tutorial notebook for for in-depth examples and explanations.
     kfac.invert(add=0.5, multiply=1)
@@ -159,7 +159,7 @@ All scripts use the same standard arguments as well as some script specific argu
 
 .. code-block:: console
 
-    $ python curvature/factors.py \
+    $ python curvature/scripts/factors.py \
             --torch_dir=<TORCH> \
             --data_dir=<DATA_DIR> \
             --results_dir=<RESULTS> \
@@ -221,7 +221,7 @@ For a complete list of all arguments and their meaning call one of the scripts i
 
 .. code-block:: console
 
-    $ python curvature/factors.py --help
+    $ python curvature/scripts/factors.py --help
 
 **Example**
 
@@ -232,23 +232,23 @@ optimization automatically. ``--torch_dir``, ``--data_dir``, ``--results_dir`` a
 
 .. code-block:: console
 
-    $ python curvature/factors.py --model densenet121 --estimator kfac --samples 1 --verbose
-    $ python curvature/hyper.py --model densenet121 --estimator kfac --batch_size 128 --plot
-    $ python curvature/evaluate.py --model densenet121 --estimator kfac --batch_size 128 --plot
+    $ python curvature/scripts/factors.py --model densenet121 --estimator kfac --samples 1 --verbose
+    $ python curvature/scripts/hyper.py --model densenet121 --estimator kfac --batch_size 128 --plot
+    $ python curvature/scripts/evaluate.py --model densenet121 --estimator kfac --batch_size 128 --plot
 
 Once this cycle has been completed for several architectures or estimators, they can be compared using the ``visualization.py`` script.
 
 .. code-block:: console
 
-    $ python curvature/visualize.py --model densenet121 --calibration
-    $ python curvature/visualize.py --model densenet121 --ood
+    $ python curvature/scripts/visualize.py --model densenet121 --calibration
+    $ python curvature/scripts/visualize.py --model densenet121 --ood
 
 To use the INF IM approximation, first compute ``EFB`` (which also computes ``DIAG`` with no additional computational overhead).
 
 .. code-block:: console
 
-    $ python curvature/factors.py --model densenet121 --estimator efb --samples 10 --verbose
-    $ python curvature/factors.py --model densenet121 --estimator inf --rank 100
+    $ python curvature/scripts/factors.py --model densenet121 --estimator efb --samples 10 --verbose
+    $ python curvature/scripts/factors.py --model densenet121 --estimator inf --rank 100
 
 **Hyperparameters**
 
