@@ -3,9 +3,9 @@ import os
 import torch
 import tqdm
 
-from src.resnet import resnet18
-from src.datasets import gtsrb
-from src.utils import setup, ram, vram, accuracy
+from curvature.resnet import resnet18
+from curvature.datasets import gtsrb
+from curvature.utils import setup, ram, vram, accuracy
 from scripts.evaluate import eval_nn
 
 

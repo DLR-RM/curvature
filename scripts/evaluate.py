@@ -7,13 +7,13 @@ import torchvision
 import tqdm
 from matplotlib import pyplot as plt
 
-from src import datasets
-from src.lenet5 import lenet5
-from src.resnet import resnet18
-from src.curvatures import Diagonal, KFAC, EFB, INF
+from curvature import datasets
+from curvature.lenet5 import lenet5
+from curvature.resnet import resnet18
+from curvature.curvatures import Diagonal, KFAC, EFB, INF
+from curvature.utils import (accuracy, setup, ram, vram, expected_calibration_error, predictive_entropy,
+                             negative_log_likelihood, calibration_curve)
 from scripts import plot
-from src.utils import (accuracy, setup, ram, vram, expected_calibration_error, predictive_entropy,
-                       negative_log_likelihood, calibration_curve)
 
 
 def eval_fgsm(model,

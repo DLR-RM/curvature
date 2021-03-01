@@ -1,3 +1,4 @@
+import os
 import torch
 
 
@@ -23,7 +24,7 @@ def lenet5(pretrained="", device=None):
     )
 
     if pretrained:
-        state_path = "../lenet5_mnist.pth"
+        state_path = os.path.join(os.path.abspath(os.getcwd()), "curvature", "lenet5_mnist.pth")
         state_dict = torch.load(state_path, map_location=device)
         model.load_state_dict(state_dict)
 

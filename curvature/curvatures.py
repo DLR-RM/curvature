@@ -11,7 +11,7 @@ from torch.nn import Module, Sequential
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from src.utils import get_eigenvectors, kron
+from .utils import get_eigenvectors, kron
 
 
 class Curvature(ABC):

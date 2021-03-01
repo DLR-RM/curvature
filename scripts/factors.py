@@ -5,9 +5,8 @@ import torch
 import torchvision
 import tqdm
 
-from src import datasets, resnet, curvatures as curv
-import src.lenet5 as lenet5
-from src.utils import setup, ram, vram
+from curvature import lenet5, resnet, datasets, curvatures as curv
+from curvature.utils import setup, ram, vram
 
 
 def compute_inf(args: Any,
