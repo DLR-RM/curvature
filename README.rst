@@ -10,7 +10,7 @@ Jongseok Lee, Matthias Humt, Jianxiang Feng, Rudolph Triebel, ICML 2020.
 (`paper <https://proceedings.icml.cc/static/paper_files/icml/2020/2525-Paper.pdf>`_)
 
 **Bayesian Optimization Meets Laplace Approximation for Robotic Introspection**
-Jongseok Lee, Matthias Humt, Rudolph Triebel, IROS 2020 Workshop.
+Matthias Humt, Jongseok Lee, Rudolph Triebel, IROS 2020 Workshop.
 (`paper <https://elib.dlr.de/137021/1/ICRA2020LTAWS_paper_2.pdf>`_)
 
 **Learning Multiplicative Interactions with Bayesian Neural Networks for Visual-Inertial Odometry**
